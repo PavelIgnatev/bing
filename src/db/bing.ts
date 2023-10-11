@@ -54,14 +54,20 @@ class AccountService {
     return accounts[randomIndex];
   }
 
-  async insertAccount(account: Account): Promise<void> {
+  async insertAccount(account: { cookie: string }): Promise<void> {
     await this.connect();
 
     if (!this.collection) {
       return;
     }
 
-    await this.collection.insertOne(account);
+    const existingAccount = await this.collection.findOne({ cookie: account.cookie });
+
+    if (!existingAccount) {
+      await this.collection.insertOne(account as Account);
+    } else {
+      console.log('Аккаунт с таким cookie уже есть в системе');
+    }
   }
 
   async deleteAccount(id: string): Promise<void> {

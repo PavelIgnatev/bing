@@ -1,41 +1,49 @@
-import { getBingAnswer } from "../helpers/getBingAnswer";
-import { withExponentialBackoff } from "../helpers/withExponentialBackoff";
+import { BingChat, ChatMessage, SendMessageOptions } from "bing-chat-rnz";
 
-export const getAnswer = async (
-  messages: Array<string> = [],
-  variant: "Creative" | "Precise" = "Precise"
+import bingApi from "../db/bing";
+
+const DEFAULT_TIMEOUT = 75000;
+
+export const getBingAnswer = async (
+  message: string,
+  options: SendMessageOptions
 ) => {
-  let options = { variant };
-  let result: null | string = null;
+  const cookie = await bingApi.readAccount();
 
-  for (let message of messages) {
-    try {
-      console.log(
-        "\x1b[36m%s\x1b[0m: %s",
-        "Направляю запрос в Bing для получения ответа",
-        message
-      );
-      const response = await withExponentialBackoff({
-        func: () => {
-          return getBingAnswer(message, options);
-        },
-        maxRetries: 3,
-        delay: 3000,
-      });
-
-      const { text, conversationOptions } = response;
-      options = {
-        ...conversationOptions,
-        variant,
-      };
-
-      console.log("\x1b[36m%s\x1b[0m: %s", "Ответ от Bing", text, "\n");
-      result = text;
-    } catch (error) {
-      console.log(error);
-      return null;
-    }
+  if (!cookie || !cookie.cookie) {
+    throw new Error("Закончились аккаунты");
   }
 
-  return result;
+  const api = new BingChat({
+    cookie: cookie.cookie,
+  });
+
+  const res = (await Promise.race([
+    api.sendMessage(message, options),
+    new Promise((_, reject) =>
+      setTimeout(
+        () =>
+          reject(
+            new Error(
+              `Время ожидания ответа от Bing превысило ${DEFAULT_TIMEOUT}ms`
+            )
+          ),
+        DEFAULT_TIMEOUT
+      )
+    ),
+  ])) as ChatMessage;
+
+  if (!res.text) {
+    bingApi.deleteAccount(cookie._id);
+    throw new Error("Пустой ответ от Bing");
+  }
+
+  return {
+    text: res.text,
+    conversationOptions: {
+      conversationId: res.conversationId,
+      clientId: res.clientId,
+      conversationSignature: res.conversationSignature,
+    },
+  };
 };

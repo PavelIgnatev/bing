@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
 
-import { getAnswer } from "./modules/getBingAnswer";
+import { getAnswer } from "./modules/getAnswer";
 
 const app = express();
 app.use(express.json());
@@ -40,6 +40,6 @@ app.all("/answer/*", async (req: Request, res: Response) => {
   }
 });
 
-app.listen(8080, async () => {
+app.listen(80, async () => {
   console.log("Прокси-сервер запущен на порту 80");
 });

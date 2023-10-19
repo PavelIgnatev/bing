@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 
 import { getAnswer } from "./modules/getAnswer";
 import { filterStrings } from "./helpers/filterString";
+import { replaceALl } from "./helpers/replaceAll";
 
 const app = express();
 app.use(express.json());
@@ -31,11 +32,11 @@ app.all("/answer/*", async (req: Request, res: Response) => {
       retryCount++;
     }
 
-    if (!Boolean(result)) {
+    if (!result || !Boolean(result)) {
       throw new Error("Лимит ретраев");
     }
 
-    res.status(200).send(result);
+    res.status(200).send(replaceALl(result, "[^1^]", ""));
   } catch (err) {
     res.status(400).send(null);
   }

@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 
 import { getAnswer } from "./modules/getAnswer";
+import { filterStrings } from "./helpers/filterString";
 
 const app = express();
 app.use(express.json());
@@ -16,7 +17,7 @@ app.all("/answer/*", async (req: Request, res: Response) => {
     while (!Boolean(result) && retryCount < 5) {
       try {
         try {
-          result = await getAnswer(dialogue);
+          result = await getAnswer(filterStrings(dialogue));
           if (!result) {
             throw new Error("Пустой ответ");
           }
